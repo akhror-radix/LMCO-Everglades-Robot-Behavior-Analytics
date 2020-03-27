@@ -37,7 +37,31 @@ INNER JOIN (
     FROM Games
     INNER JOIN Groups
     ON Games.game_id = Groups.game_id
-    WHERE ( Games.game_id, Groups.group_id ) NOT IN Disband
+    WHERE ( Games.game_id, Groups.group_id ) NOT IN(
+        SELECT Disband.game_id,
+               Disband.group_id
+        FROM Disband
+    )
     AND Groups.player = 0
     GROUP BY Games.game_id
 ) as p0_groups_left
+ON p0_groups_left.game_id = Win_Loss.game_id
+INNER JOIN (
+    SELECT Games.game_id,
+           Count(*) as count
+    FROM Games
+    INNER JOIN Groups
+    ON Games.game_id = Groups.game_id
+    WHERE ( Games.game_id, Groups.group_id ) NOT IN(
+        SELECT Disband.game_id,
+               Disband.group_id
+        FROM Disband
+    )
+    AND Groups.player = 1
+    GROUP BY Games.game_id
+) as p1_groups_left
+ON p1_groups_left.game_id = Win_Loss.game_id
+INTO OUTFILE '/var/lib/mysql-files/groups_remaining.csv'
+FIELDS TERMINATED BY ','
+ENCLOSED BY ''
+LINES TERMINATED BY '\n';
